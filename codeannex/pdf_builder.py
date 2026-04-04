@@ -43,7 +43,8 @@ class ModernAnnexPDF:
             self.mono_font = self.config.mono_font
         if self.config.emoji_font:
             self.emoji_font = self.config.emoji_font
-        self.page_num     = self.config.start_page_num - 1  # será incrementado no primeiro start_new_page
+        self.page_num     = self.config.start_page_num
+        self._first_page  = True
         self.y            = 0
         self.summary_data: dict         = {}
         self._registered_bookmarks: set = set()
@@ -68,9 +69,11 @@ class ModernAnnexPDF:
 
     # ── Paginação ────────────────────────────────
     def start_new_page(self):
-        if self.page_num > 0:
+        if not self._first_page:
             self.c.showPage()
-        self.page_num += 1
+            self.page_num += 1
+        
+        self._first_page = False
         self.y = PAGE_H - self.config.margin_top
         if not self.is_simulation:
             self.c.setFillColor(COLOR_PAGE_BG)

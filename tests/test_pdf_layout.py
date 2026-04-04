@@ -24,6 +24,23 @@ class TestPDFLayout:
         assert "2" in text
         assert "Página" not in text
 
+    def should_not_have_blank_page_at_start_with_custom_start_page(self):
+        """Verifica que não há página em branco no início mesmo com start_page_num > 1."""
+        output = io.BytesIO()
+        config = PDFConfig(start_page_num=11)
+        mono_font, _, _ = register_best_font()
+        
+        pdf = ModernAnnexPDF(output, Path("."), mono_font, None, config)
+        pdf.draw_cover()
+        pdf.c.save()
+        
+        text = extract_text(io.BytesIO(output.getvalue()))
+        # O texto da capa deve estar presente e o número da página deve ser 11
+        assert "ANEXO TÉCNICO" in text
+        assert "11" in text
+        # Se houvesse uma página em branco (11), a capa seria a 12
+        assert "12" not in text
+
     def should_show_correct_part_labels_for_multipage_files(self, tmp_path):
         """Verifica se arquivos que ocupam várias páginas mostram '(parte 1/n)', '(parte 2/n)', etc."""
         large_file = tmp_path / "large.py"
