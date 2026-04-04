@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "codeannex"
-version = "0.1.1"
+version = "0.1.2"
 description = "Generates a professional PDF source code annex with Smart Index, Images and Emoji support."
 readme = "README.md"
 license = { text = "MIT" }
