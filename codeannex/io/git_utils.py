@@ -31,8 +31,8 @@ def get_git_info(root: Path, use_git: bool = True) -> tuple[str | None, str | No
                 branch_name = res_branch.stdout.strip()
                 if branch_name == "HEAD": branch_name = None
 
-        # 3. Get commit SHA (short)
-        res_sha = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=root, capture_output=True, text=True)
+        # 3. Get commit SHA (8 chars)
+        res_sha = subprocess.run(["git", "rev-parse", "--short=8", "HEAD"], cwd=root, capture_output=True, text=True)
         if res_sha.returncode == 0: commit_sha = res_sha.stdout.strip()
 
     except (subprocess.CalledProcessError, FileNotFoundError): pass

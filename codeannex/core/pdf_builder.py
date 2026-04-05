@@ -55,12 +55,12 @@ class ModernAnnexPDF:
         self.c.setTitle(f"Source code: {project_name}")
 
     def _dtf(self, x, y, text, font, size, color=None):
-        draw_text_with_fallback(self.c, x, y, text, font, size, self.emoji_font, color,
-                                emoji_description=self.config.emoji_description)
+        return draw_text_with_fallback(self.c, x, y, text, font, size, self.emoji_font, color,
+                                       emoji_description=self.config.emoji_description)
 
     def _dctf(self, x, y, text, font, size, color=None):
-        draw_centred_text_with_fallback(self.c, x, y, text, font, size, self.emoji_font, color,
-                                        emoji_description=self.config.emoji_description)
+        return draw_centred_text_with_fallback(self.c, x, y, text, font, size, self.emoji_font, color,
+                                               emoji_description=self.config.emoji_description)
 
     def _gsw(self, text, font, size) -> float:
         return get_safe_string_width(text, font, size, self.emoji_font,
@@ -136,24 +136,24 @@ class ModernAnnexPDF:
                 label = self.config.repo_label
                 name = project_name
                 
-                # Calculate widths for precise alignment
+                # Calculate total block width for initial centering
                 label_w = self._gsw(label, self.config.normal_font, 14)
                 name_w  = self._gsw(name, self.config.normal_font, 14)
                 total_w = label_w + name_w
                 
                 start_x = mid_x - total_w / 2
                 
-                # 1. Draw the label (Plain text color)
-                self._dtf(start_x, curr_y, label, self.config.normal_font, 14, text_color)
+                # 1. Draw the label and capture EXACT end position
+                name_x = self._dtf(start_x, curr_y, label, self.config.normal_font, 14, text_color)
                 
-                # 2. Draw the name (Primary color if linked, else normal)
-                name_x = start_x + label_w
+                # 2. Draw the name starting exactly where label ended
                 final_name_color = colors.HexColor(self.config.primary_color) if self.config.repo_url else text_color
-                self._dtf(name_x, curr_y, name, self.config.normal_font, 14, final_name_color)
+                end_x = self._dtf(name_x, curr_y, name, self.config.normal_font, 14, final_name_color)
                 
-                # 3. Apply link only to the name area
+                # 3. Apply link using the real coordinates
                 if self.config.repo_url:
-                    self.c.linkURL(self.config.repo_url, (name_x, curr_y - 2, name_x + name_w, curr_y + 12), relative=0, thickness=0, border=None)
+                    # Coordinates are (x1, y1, x2, y2)
+                    self.c.linkURL(self.config.repo_url, (name_x, curr_y - 2, end_x, curr_y + 12), relative=0, thickness=0, border=None)
                 
                 curr_y -= 8*mm
             

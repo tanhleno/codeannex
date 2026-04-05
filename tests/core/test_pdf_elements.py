@@ -14,7 +14,7 @@ def should_render_cover_with_all_elements():
         project_name="CoverTest",
         repo_url="https://github.com/test/repo",
         branch_name="dev-branch",
-        commit_sha="a1b2c3d",
+        commit_sha="a1b2c3d4",
         cover_title="FULL COVER",
         cover_subtitle="Testing all fields"
     )
@@ -30,9 +30,9 @@ def should_render_cover_with_all_elements():
     assert "Repository: CoverTest" in text
     assert "Branch: dev-branch" in text
     
-    # Use regex to find "Commit: [any 7 hex chars]"
+    # Use regex to find "Commit: [any 8 hex chars]"
     import re
-    assert re.search(r"Commit: [a-f0-9]{7}", text) is not None
+    assert re.search(r"Commit: [a-f0-9]{8}", text) is not None
 
 def should_handle_image_rendering_logic(tmp_path):
     """Testa a lógica de desenho de imagem (mockando a imagem real)."""
