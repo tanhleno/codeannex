@@ -1,21 +1,21 @@
 # 📂 codeannex
 
-Generates a professional PDF annex from a project's source code — with syntax highlighting, a hierarchical table of contents, image rendering, and intelligent font discovery.
+Generates a professional PDF annex from a project's source code — featuring syntax highlighting, a hierarchical table of contents, image rendering, and version tracking.
 
 ## 🚀 Key Features
 
-- **Interactive Wizard 2.0** — Organized by sections (Project, Style, Typography, Layout, Filters) with smart defaults and explicit (Y/n) prompts.
-- **Git Integration & Version Tracking** — Automatically detects Repository URL, Branch, and **Commit SHA**. Supports subdirectories by intelligently ignoring Git metadata if not at the root.
-- **Subdirectories First** — Improved document organization by listing subdirectories and their contents before root files.
+- **Interactive Wizard 2.0** — Step-by-step configuration with smart sections (Project, Style, Typography, Layout, Filters) and explicit default prompts.
+- **Git Version Tracking** — Automatically detects **Repository URL**, **Branch**, and **Commit SHA**. Smart root detection avoids Git metadata on subdirectories.
+- **Smart SVG Rendering** — Files are rendered as both a high-quality image and XML code. Entries are intelligently deduplicated in the summary.
+- **Improved Document Structure** — Subdirectories and their contents are listed before root files for better organization.
+- **High-Contrast Design** — Redesigned cover page, thickened image frames, and optimized line number legibility.
+- **Intelligent Font Discovery** — Automatically finds fonts from your system or custom directories via `--font-path`.
 - **Flexible File Filtering** — Multi-pattern include and exclude glob filters (e.g., `--include "src/*" --exclude "tests/*"`).
-- **Intelligent Font Discovery** — Automatically finds fonts from your system (Windows, Linux, macOS) or custom paths via `--font-path`.
-- **Fully Customizable UI** — Control everything: paper size (mm), margins (cm), colors (HEX), and font sizes.
-- **Hierarchical Summary** — Real tree-structured Table of Contents with increasing page numbers and terminal-like connection lines.
-- **Professional Design** — High-contrast line numbers, clean cover page, and smart contrast (auto-switching text between black/white based on accent brightness).
+- **Pro-Level UI** — Control paper size (mm), margins (cm), accent colors (HEX), and font sizes.
 
 ## 🛠 Installation
 
-The recommended way to install **codeannex** is via [pipx](https://github.com/pypa/pipx), which installs the tool in an isolated environment:
+The recommended way to install **codeannex** is via [pipx](https://github.com/pypa/pipx):
 
 ```bash
 pipx install codeannex
@@ -32,7 +32,7 @@ pipx install "codeannex[svg]"
 ## 📖 Usage
 
 ### Interactive Mode (Wizard)
-Simply run without arguments to start the step-by-step configuration:
+Simply run without arguments to start the configuration:
 ```bash
 python3 -m codeannex
 ```
@@ -48,13 +48,15 @@ python3 -m codeannex . \
   --no-input
 ```
 
+Default output filename is `{project_name}_code_annex.pdf`.
+
 ## ⚙️ Configuration Options
 
 ### Git & Metadata
 - `--repo-url URL` — Manual repository URL.
 - `--branch NAME` — Manual branch name.
 - `--no-git` — Force disable Git integration.
-- `--repo-label LABEL` — Label for repo (default: "Repository Name: ").
+- `--repo-label LABEL` — Label for repo (default: "Repository: ").
 
 ### File Selection
 - `--include PATTERN` — Include glob pattern (can be used multiple times).
@@ -63,7 +65,7 @@ python3 -m codeannex . \
 ### Design & Layout
 - `--page-width MM` / `--page-height MM` — Custom paper size in mm (default: A4).
 - `--margin CM` — General margin (top, bottom, left, right).
-- `--primary-color HEX` — Accent color for headers and summary icons.
+- `--primary-color HEX` — Accent color for headers, summary icons, and links.
 - `--code-size N` — Font size for code and line numbers.
 
 ### Fonts
@@ -73,7 +75,7 @@ python3 -m codeannex . \
 ## 🧪 Testing
 
 ```bash
-PYTHONPATH=. pytest
+PYTHONPATH=. pytest tests --cov=codeannex
 ```
 
 ## 📄 License

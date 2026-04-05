@@ -46,7 +46,10 @@ def main():
         check_emoji_font_style()
         return
 
-    root, output = Path(args.dir).resolve(), args.output or f"{Path(args.dir).resolve().name}_anexo_codigo.pdf"
+    root, output = Path(args.dir).resolve(), args.output or f"{Path(args.dir).resolve().name}_code_annex.pdf"
+    output_path = Path(output).resolve()
+    script_path = Path(__file__).resolve()
+
     use_git = not args.no_git
     git_url, git_branch, git_sha = get_git_info(root, use_git=use_git)
     repo_url, branch_name = args.repo_url or git_url, args.branch or git_branch
@@ -105,18 +108,33 @@ def main():
     all_files = sort_files(get_project_files(root, includes=args.include, excludes=args.exclude, use_git=use_git), root)
     included = []
     from .core.config import IMAGE_EXTENSIONS, BINARY_EXTENSIONS
-    script_path, output_path = Path(__file__).resolve(), Path(output).resolve()
 
     for fp in all_files:
+        # We only silently skip the script itself to avoid infinite recursion if it's in the same folder
         try:
-            if fp.resolve() in (script_path, output_path): continue
+            if fp.resolve() == script_path: continue
         except: pass
+        
         if not fp.is_file(): continue
+        
         ext = fp.suffix.lower()
-        if ext == ".svg": included += [(fp, "image"), (fp, "text")]
-        elif ext in IMAGE_EXTENSIONS: included.append((fp, "image"))
-        elif ext in BINARY_EXTENSIONS: continue
-        elif classify_file(fp) == "text": included.append((fp, "text"))
+        if ext == ".svg":
+            included += [(fp, "image"), (fp, "text")]
+            continue
+        elif ext in IMAGE_EXTENSIONS:
+            included.append((fp, "image"))
+            continue
+        elif ext in BINARY_EXTENSIONS:
+            rel_path = fp.relative_to(root).as_posix()
+            print(f"⚠️  Skipping binary/unsupported file: {rel_path}")
+            continue
+        
+        file_type = classify_file(fp)
+        if file_type == "text":
+            included.append((fp, "text"))
+        else:
+            rel_path = fp.relative_to(root).as_posix()
+            print(f"⚠️  Skipping binary file: {rel_path}")
 
     if not included:
         print("❌ No compatible files found."); return

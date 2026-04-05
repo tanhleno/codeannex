@@ -133,7 +133,28 @@ class ModernAnnexPDF:
             curr_y = self.config.page_height * 0.45
             
             if project_name:
-                self._dctf(mid_x, curr_y, f"{self.config.repo_label}{project_name}", self.config.normal_font, 14, text_color)
+                label = self.config.repo_label
+                name = project_name
+                
+                # Calculate widths for precise alignment
+                label_w = self._gsw(label, self.config.normal_font, 14)
+                name_w  = self._gsw(name, self.config.normal_font, 14)
+                total_w = label_w + name_w
+                
+                start_x = mid_x - total_w / 2
+                
+                # 1. Draw the label (Plain text color)
+                self._dtf(start_x, curr_y, label, self.config.normal_font, 14, text_color)
+                
+                # 2. Draw the name (Primary color if linked, else normal)
+                name_x = start_x + label_w
+                final_name_color = colors.HexColor(self.config.primary_color) if self.config.repo_url else text_color
+                self._dtf(name_x, curr_y, name, self.config.normal_font, 14, final_name_color)
+                
+                # 3. Apply link only to the name area
+                if self.config.repo_url:
+                    self.c.linkURL(self.config.repo_url, (name_x, curr_y - 2, name_x + name_w, curr_y + 12), relative=0, thickness=0, border=None)
+                
                 curr_y -= 8*mm
             
             # 4. Technical Metadata (Branch | Commit)
@@ -147,13 +168,6 @@ class ModernAnnexPDF:
                 tech_str = "  |  ".join(tech_items)
                 self._dctf(mid_x, curr_y, tech_str, self.config.normal_font, 10, colors.HexColor("#6c7086"))
                 curr_y -= 12*mm
-            
-            if self.config.repo_url:
-                url = self.config.repo_url
-                url_w = self._gsw(url, self.config.normal_font, 11)
-                start_x = mid_x - url_w / 2
-                self._dtf(start_x, curr_y, url, self.config.normal_font, 11, colors.HexColor(self.config.primary_color))
-                self.c.linkURL(url, (start_x, curr_y - 2, start_x + url_w, curr_y + 10), relative=0, thickness=0, border=None)
 
     def draw_summary_page(self, files: list):
         self.start_new_page()
@@ -163,7 +177,16 @@ class ModernAnnexPDF:
                       title_font, 16, colors.HexColor(self.config.title_color))
         self.y -= 12*mm
         nested_tree: dict = {"_files": []}
+        
+        # To avoid double entries for SVG (Image + Code)
+        processed_paths = set()
+        unique_files = []
         for fpath, ftype in files:
+            if fpath not in processed_paths:
+                unique_files.append((fpath, ftype))
+                processed_paths.add(fpath)
+
+        for fpath, ftype in unique_files:
             rel = fpath.relative_to(self.project_root)
             curr = nested_tree
             for part in rel.parts[:-1]: curr = curr.setdefault(part, {"_files": []})
@@ -174,10 +197,7 @@ class ModernAnnexPDF:
     def _draw_recursive_summary(self, node: dict, depth: int, path_parts: list, is_last_list: list):
         subdirs = sorted([k for k in node.keys() if k != "_files"], key=str.lower)
         files_in_node = node.get("_files", [])
-        
-        # Subdirectories first, then files (matches the new sort_files logic)
         all_entries = [(d, "dir") for d in subdirs] + [(f, "file") for f in files_in_node]
-        
         indent_step, text_color = 5*mm, colors.HexColor(self.config.normal_text_color)
         for i, (item, type) in enumerate(all_entries):
             is_last = (i == len(all_entries) - 1)
@@ -204,9 +224,9 @@ class ModernAnnexPDF:
             self.y -= 6*mm
             if type == "dir": self._draw_recursive_summary(node[item], depth + 1, path_parts + [item], is_last_list + [is_last])
 
-    def render_text_file(self, fpath: Path, label_suffix=""):
+    def render_text_file(self, fpath: Path):
         rel = fpath.relative_to(self.project_root).as_posix()
-        display_name, bookmark_key = rel + label_suffix, _make_bookmark_key(rel)
+        display_name, bookmark_key = rel, _make_bookmark_key(rel)
         try: content = fpath.read_text(encoding="utf-8", errors="replace")
         except: return
         self._check_space(25*mm)
@@ -214,7 +234,15 @@ class ModernAnnexPDF:
         bookmark_parts, total_parts = f"{bookmark_key}__parts", self.summary_data.get(f"{bookmark_key}__parts", None)
         header_suffix = self.config.file_part_format.replace("{current}", "1").replace("{total}", str(total_parts)) if total_parts else ""
         self._draw_file_header(display_name, continuation=header_suffix)
-        try: lexer = get_lexer_for_filename(str(fpath), stripnl=False)
+        try:
+            ext = fpath.suffix.lower()
+            if ext == ".svg":
+                from pygments.lexers import XmlLexer
+                lexer = XmlLexer(stripnl=False)
+            elif fpath.name in [".gitignore", "LICENSE", "README"]:
+                lexer = TextLexer(stripnl=False)
+            else:
+                lexer = get_lexer_for_filename(str(fpath), stripnl=False)
         except ClassNotFound:
             if not self.is_simulation: print(f"ℹ️  Highlighting fallback: No lexer for '{fpath.name}'. Using plain text.")
             lexer = TextLexer(stripnl=False)
@@ -279,20 +307,18 @@ class ModernAnnexPDF:
         if line_num is not None:
             num_str = str(line_num)
             num_char_w = pdfmetrics.stringWidth("0", self.mono_font, self.config.code_font_size)
-            # Increase box size from 0.8 to 0.9 for better legibility
             box_hw = self.config.code_font_size * 0.9
             start_x = self.config.margin_left + GUTTER_W - 2.5*mm - len(num_str) * num_char_w
             for char in num_str:
-                # Improved vertical centering
                 self.c.drawImage(get_digit_sprites()[char], start_x + (num_char_w - box_hw) / 2.0, (self.y - self.config.code_font_size - 1.5) - box_hw * 0.1, width=box_hw, height=box_hw, mask="auto")
                 start_x += num_char_w
         code_x = self.config.get_code_x() + 2*mm
         for chunk, color in v_line:
             code_x = draw_text_with_fallback(self.c, code_x, self.y - self.config.code_font_size - 1, chunk, self.mono_font, self.config.code_font_size, self.emoji_font, color, emoji_description=self.config.emoji_description)
 
-    def render_image_file(self, fpath: Path, label_suffix=""):
+    def render_image_file(self, fpath: Path):
         rel = fpath.relative_to(self.project_root).as_posix()
-        self._check_space(40*mm); self._register_bookmark(rel + label_suffix, _make_bookmark_key(rel)); self._draw_file_header(rel + label_suffix)
+        self._check_space(40*mm); self._register_bookmark(rel, _make_bookmark_key(rel)); self._draw_file_header(rel)
         self._draw_image(fpath)
 
     def _draw_image(self, fpath):
@@ -312,7 +338,7 @@ class ModernAnnexPDF:
             draw_y, block_bottom, block_w = self.y - draw_h - padding, self.y - draw_h - 2*padding, self.config.page_width - self.config.margin_left - self.config.margin_right
             if not self.is_simulation:
                 self.c.setFillColor(colors.HexColor("#ffffff")); self.c.rect(self.config.margin_left, block_bottom, block_w, self.y - block_bottom, fill=1, stroke=0)
-                self.c.setStrokeColor(colors.HexColor("#e6e9ef")); self.c.setLineWidth(0.5); self.c.rect(self.config.margin_left, block_bottom, block_w, self.y - block_bottom, fill=0, stroke=1)
+                self.c.setStrokeColor(colors.HexColor("#e6e9ef")); self.c.setLineWidth(1.0); self.c.rect(self.config.margin_left, block_bottom, block_w, self.y - block_bottom, fill=0, stroke=1)
                 draw_x = self.config.margin_left + (block_w - draw_w) / 2
                 if img is None and png_data: img = PilImage.open(io.BytesIO(png_data))
                 if img: self.c.drawImage(ImageReader(img), draw_x, draw_y, draw_w, draw_h, preserveAspectRatio=True, mask="auto")
@@ -327,7 +353,6 @@ class ModernAnnexPDF:
         self.draw_cover(); self.draw_summary_page(files)
         for i, (fpath, ftype) in enumerate(files):
             if not self.is_simulation: print(f"\r\033[K[{i+1}/{len(files)}] Processing: {fpath.name}", end="")
-            suffix = " (Code)" if ftype == "text" and fpath.suffix.lower() == ".svg" else ""
-            if ftype == "text": self.render_text_file(fpath, label_suffix=suffix)
-            elif ftype == "image": self.render_image_file(fpath, label_suffix=suffix)
+            if ftype == "text": self.render_text_file(fpath)
+            elif ftype == "image": self.render_image_file(fpath)
         if not self.is_simulation: print(); self.c.save()

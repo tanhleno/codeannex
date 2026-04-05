@@ -72,7 +72,7 @@ class PDFConfig:
     page_bg_color: str = "#ffffff"
     
     summary_title: str = "Summary / File Index"
-    repo_label: str = "Repository Name: "
+    repo_label: str = "Repository: "
     project_label: str = "Project: "
     file_part_format: str = "(part {current}/{total})"
 
