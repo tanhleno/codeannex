@@ -1,26 +1,35 @@
-# Build
+# Build and Distribution
 dist/
 build/
 *.egg-info/
-
-# Python
 __pycache__/
 *.py[cod]
 *.pyo
+
+# Virtual Environments
 .venv/
 venv/
+ENV/
+env/
+
+# Testing and Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
 
 # Output
 *.pdf
 
-# IDE
+# IDEs and Editors
 .vscode/
 .idea/
 *.swp
+*.swo
+.DS_Store
 
-# Testing
-.pytest_cache/
-
-dist/
-build/
-*.egg-info/
+# Gemini CLI / Temporary
+.gemini/

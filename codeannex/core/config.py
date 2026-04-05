@@ -29,64 +29,52 @@ COLOR_ACCENT    = colors.HexColor("#89b4fa")
 NORMAL_FONT = "Helvetica"
 BOLD_FONT   = "Helvetica-Bold"
 
-# ── Supported image extensions ───────────────
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".ico", ".gif", ".webp", ".bmp", ".svg"}
-
-# ── Binary extensions to ignore quickly ──────
-BINARY_EXTENSIONS = {".pdf", ".pyc", ".pyo", ".exe", ".dll", ".so", ".dylib",
-                     ".zip", ".tar", ".gz", ".rar", ".7z", ".jar", ".whl",
-                     ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}
-
+BINARY_EXTENSIONS = {".pdf", ".pyc", ".pyo", ".exe", ".dll", ".so", ".dylib", ".zip", ".tar", ".gz", ".rar", ".7z", ".jar", ".whl"}
 
 @dataclass
 class PDFConfig:
-    """PDF configuration for code annex."""
     project_name: str | None = None
     margin_left: float = _DEFAULT_MARGIN_LEFT
     margin_right: float = _DEFAULT_MARGIN_RIGHT
     margin_top: float = _DEFAULT_MARGIN_TOP
     margin_bottom: float = _DEFAULT_MARGIN_BOTTOM
+    page_width: float = PAGE_W
+    page_height: float = PAGE_H
     start_page_num: int = 1
     show_project_name: bool = False
     normal_font: str = NORMAL_FONT
     bold_font: str = BOLD_FONT
-    mono_font: str | None = None  # Will be set by register_best_font
-    emoji_font: str | None = None  # Will be set by register_emoji_font
-    emoji_description: bool = False  # Print descriptions instead of emojis
-    repo_url: str | None = None  # URL of the repository for the cover page
-    page_number_size: int = 8  # Font size for page numbers
+    mono_font: str | None = None
+    emoji_font: str | None = None
+    emoji_description: bool = False
+    repo_url: str | None = None
+    branch_name: str | None = None
+    commit_sha: str | None = None
+    page_number_size: int = 8
 
-    # Customization fields
     title_font: str | None = None
     title_size: int = 28
     title_color: str = "#1e1e2e"
     subtitle_font: str | None = None
     subtitle_size: int = 18
-    subtitle_color: str | None = None # Defaults to title_color
+    subtitle_color: str | None = None
     normal_text_size: int = 10
-    normal_text_color: str = "#4c4f69" # Default COLOR_TEXT_MAIN
-    page_number_format: str = "{n}" # e.g. "Anexo I - {n}" or just "{n}"
+    normal_text_color: str = "#4c4f69"
+    page_number_format: str = "{n}"
     show_page_numbers: bool = True
     cover_title: str = "TECHNICAL ANNEX"
     cover_subtitle: str = "Source Code Documentation"
-    primary_color: str = "#1e66f5" # Professional dark blue
+    primary_color: str = "#1e66f5"
     
-    # Code style
     code_font_size: int = CODE_FONT_SIZE
-    code_bg_color: str = "#1e1e2e" # Default COLOR_CODE_BG
-    page_bg_color: str = "#ffffff" # Default COLOR_PAGE_BG
+    code_bg_color: str = "#1e1e2e"
+    page_bg_color: str = "#ffffff"
     
-    # Labels (Internationalization)
     summary_title: str = "Summary / File Index"
-    repo_label: str = "Repository: "
+    repo_label: str = "Repository Name: "
     project_label: str = "Project: "
-    file_part_format: str = "({current}/{total})" # e.g. "(1/2)"
-    cover_subtitle: str = "Source Code Documentation"
+    file_part_format: str = "(part {current}/{total})"
 
-    def get_code_x(self) -> float:
-        """Calculates the initial X position of the code."""
-        return self.margin_left + GUTTER_W
-
-    def get_code_w(self) -> float:
-        """Calculates the available width for code."""
-        return PAGE_W - self.get_code_x() - self.margin_right
+    def get_code_x(self) -> float: return self.margin_left + GUTTER_W
+    def get_code_w(self) -> float: return self.page_width - self.get_code_x() - self.margin_right

@@ -4,75 +4,71 @@ Generates a professional PDF annex from a project's source code — with syntax 
 
 ## 🚀 Key Features
 
-- **Interactive Wizard** — Run without arguments to configure your PDF step-by-step. It intelligently skips irrelevant questions (like starting page if numbering is disabled).
-- **Intelligent Font Discovery** — Automatically finds and registers fonts from your system (Windows, Linux, macOS) by name (e.g., `--title-font "Play"`).
-- **Fully Customizable UI** — Change every label, color, and size via CLI. Default labels are in English for international consistency.
-- **Hierarchical Summary** — Real tree-structured Table of Contents with terminal-like connection lines.
-- **Customizable Primary Color** — Set the theme color for headers, folder icons, and accents with `--primary-color`.
-- **Smart Contrast** — Automatically switches header text between black and white based on the brightness of your primary color for maximum legibility.
-- **Flexible Page Styling** — Support for custom page background and code block colors.
-- **Git-Aware** — Perfectly interprets `.gitignore` using Git's native engine.
+- **Interactive Wizard 2.0** — Organized by sections (Project, Style, Typography, Layout, Filters) with smart defaults and explicit (Y/n) prompts.
+- **Git Integration & Version Tracking** — Automatically detects Repository URL, Branch, and **Commit SHA**. Supports subdirectories by intelligently ignoring Git metadata if not at the root.
+- **Subdirectories First** — Improved document organization by listing subdirectories and their contents before root files.
+- **Flexible File Filtering** — Multi-pattern include and exclude glob filters (e.g., `--include "src/*" --exclude "tests/*"`).
+- **Intelligent Font Discovery** — Automatically finds fonts from your system (Windows, Linux, macOS) or custom paths via `--font-path`.
+- **Fully Customizable UI** — Control everything: paper size (mm), margins (cm), colors (HEX), and font sizes.
+- **Hierarchical Summary** — Real tree-structured Table of Contents with increasing page numbers and terminal-like connection lines.
+- **Professional Design** — High-contrast line numbers, clean cover page, and smart contrast (auto-switching text between black/white based on accent brightness).
 
 ## 🛠 Installation
 
+The recommended way to install **codeannex** is via [pipx](https://github.com/pypa/pipx), which installs the tool in an isolated environment:
+
 ```bash
-pip install codeannex
+pipx install codeannex
 ```
+
+For full SVG support (required for crisp line numbers and SVG image rendering):
+
+```bash
+pipx install "codeannex[svg]"
+```
+
+*Alternatively, you can use standard pip:* `pip install codeannex`
 
 ## 📖 Usage
 
 ### Interactive Mode (Wizard)
 Simply run without arguments to start the step-by-step configuration:
 ```bash
-codeannex .
+python3 -m codeannex
 ```
 
 ### Automation / CI
-Use the `--no-input` flag to disable the wizard in automated environments:
-```bash
-codeannex . --no-input
-```
-
-### Professional Customization Example
 ```bash
 python3 -m codeannex . \
-  --cover-title "Anexo I" \
-  --no-page-numbers \
+  --cover-title "Technical Annex" \
   --primary-color "#0f4761" \
-  --title-font "Play" --title-size 20 \
-  --normal-font "Times New Roman" --normal-size 12 \
-  --margin-top 2.5 --margin-bottom 2.5 --margin-left 3 --margin-right 3 \
-  --code-bg "#f5f5f5" --code-size 9
+  --code-size 9 \
+  --include "src/*" \
+  --exclude "*.log" \
+  --no-input
 ```
 
 ## ⚙️ Configuration Options
 
-### Document & Labels
-- `--cover-title TITLE` — Title for the cover (default: "ANEXO TÉCNICO").
-- `--cover-subtitle SUB` — Subtitle for the cover.
-- `--summary-title TITLE` — Title for the summary page.
-- `--repo-label LABEL` — Prefix for repository link (default: "Repository: ").
-- `--project-label LABEL` — Prefix for project name in footer.
-- `--file-part-format FMT` — Format for file parts (default: "({current}/{total})").
-- `--no-input` — Disable the interactive wizard.
+### Git & Metadata
+- `--repo-url URL` — Manual repository URL.
+- `--branch NAME` — Manual branch name.
+- `--no-git` — Force disable Git integration.
+- `--repo-label LABEL` — Label for repo (default: "Repository Name: ").
 
+### File Selection
+- `--include PATTERN` — Include glob pattern (can be used multiple times).
+- `--exclude PATTERN` — Exclude glob pattern (can be used multiple times).
 
-### Colors & Themes
-- `--primary-color HEX` — Main color for headers and accents.
-- `--page-bg-color HEX` — Background color for all pages.
-- `--code-bg HEX` — Background color for code blocks.
-- `--normal-color HEX` / `--title-color HEX` — Text colors.
+### Design & Layout
+- `--page-width MM` / `--page-height MM` — Custom paper size in mm (default: A4).
+- `--margin CM` — General margin (top, bottom, left, right).
+- `--primary-color HEX` — Accent color for headers and summary icons.
+- `--code-size N` — Font size for code and line numbers.
 
-### Fonts & Sizes
-- `--title-font` / `--subtitle-font` / `--normal-font` — System font names.
-- `--mono-font` — Font for code (e.g., "Consolas", "Ubuntu Mono").
-- `--emoji-font` — Font for emojis (e.g., "Noto Emoji").
-- `--code-size N` — Font size for code blocks.
-
-### Layout
-- `--margin CM` — General margin for all sides.
-- `--margin-top`, `--margin-bottom`, `--margin-left`, `--margin-right` — Specific margins in cm.
-- `--no-page-numbers` — Disable page numbering.
+### Fonts
+- `--font-path PATH` — Additional directory to search for `.ttf`/`.otf` files.
+- `--title-font` / `--normal-font` / `--mono-font` — System font names.
 
 ## 🧪 Testing
 

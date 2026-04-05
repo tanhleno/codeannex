@@ -2,9 +2,9 @@ import pytest
 import io
 from pathlib import Path
 from pdfminer.high_level import extract_text
-from codeannex.pdf_builder import ModernAnnexPDF
-from codeannex.config import PDFConfig
-from codeannex.fonts import register_best_font, init_sprites
+from codeannex.core.pdf_builder import ModernAnnexPDF
+from codeannex.core.config import PDFConfig
+from codeannex.renderer.fonts import register_best_font, init_sprites
 
 class TestPDFLayout:
     def should_have_consistent_page_numbering(self):
@@ -36,13 +36,13 @@ class TestPDFLayout:
         
         text = extract_text(io.BytesIO(output.getvalue()))
         # O texto da capa deve estar presente e o número da página deve ser 11
-        assert "ANEXO TÉCNICO" in text
+        assert "TECHNICAL ANNEX" in text
         assert "11" in text
         # Se houvesse uma página em branco (11), a capa seria a 12
         assert "12" not in text
 
     def should_show_correct_part_labels_for_multipage_files(self, tmp_path):
-        """Verifica se arquivos que ocupam várias páginas mostram '(parte 1/n)', '(parte 2/n)', etc."""
+        """Verifica se arquivos que ocupam várias páginas mostram '(part 1/n)', '(part 2/n)', etc."""
         large_file = tmp_path / "large.py"
         large_file.write_text("\n".join([f"print('line {i}')" for i in range(200)]))
         
@@ -62,8 +62,8 @@ class TestPDFLayout:
         pdf_real.c.save()
         
         text = extract_text(io.BytesIO(output.getvalue()))
-        assert "(parte 1/" in text
-        assert "(parte 2/" in text
+        assert "(part 1/" in text
+        assert "(part 2/" in text
 
     def should_render_project_name_in_footer_when_configured(self):
         """Verifica se o nome do projeto aparece no rodapé quando show_project_name é True."""
@@ -76,7 +76,7 @@ class TestPDFLayout:
         pdf.c.save()
         
         text = extract_text(io.BytesIO(output.getvalue()))
-        assert "Projeto: Custom Project" in text
+        assert "Project: Custom Project" in text
 
     def should_render_clickable_repo_link_on_cover(self):
         """Verifica se a URL do repositório é incluída como link na capa."""

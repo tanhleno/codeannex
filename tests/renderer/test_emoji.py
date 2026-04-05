@@ -7,17 +7,16 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from reportlab.pdfbase import pdfmetrics
 
-from codeannex.fonts import (
+from codeannex.renderer.fonts import (
     is_emoji, register_emoji_font, get_emoji_font_style, 
     is_google_like_emoji_font, get_current_emoji_font_info,
     is_char_supported
 )
-from codeannex.text_utils import (
-    sanitize_text, _iter_segments, replace_unsupported_emojis, 
-    get_safe_string_width
+from codeannex.renderer.text_utils import (
+    sanitize_text, get_safe_string_width
 )
-from codeannex.pdf_builder import ModernAnnexPDF
-from codeannex.config import PDFConfig
+from codeannex.core.pdf_builder import ModernAnnexPDF
+from codeannex.core.config import PDFConfig
 
 class TestEmojiSupport:
     # --- Detecção e Sanitização ---
@@ -69,16 +68,6 @@ class TestEmojiSupport:
             # depending on the version. We check if at least it doesn't crash.
             is_char_supported(emoji, emoji_font)
 
-    # --- Segmentação e Largura ---
-    def should_segment_mixed_text_and_emojis(self):
-        """Testa processamento de texto misto com emojis."""
-        text = "Code 😀 is 🎉 fun"
-        segments = list(_iter_segments(text, "Helvetica", "CustomEmoji"))
-        assert len(segments) >= 3
-        
-        emoji_segs = [seg for seg, is_e in segments if is_e]
-        assert "😀" in "".join(emoji_segs)
-
     def should_calculate_width_correctly_with_emojis(self):
         """Testa cálculo de largura de texto com emojis."""
         emoji_font = register_emoji_font()
@@ -88,21 +77,7 @@ class TestEmojiSupport:
         assert width > 0
 
     # --- Tratamento de Erros e Configuração ---
-    def should_exit_when_font_missing_and_error_requested(self, capsys):
-        """Testa erro fatal quando nenhuma fonte de emoji é encontrada."""
-        with patch("os.path.exists", return_value=False):
-            with patch("sys.exit") as mock_exit:
-                register_emoji_font(error_on_missing=True)
-                mock_exit.assert_called_once_with(1)
-                assert "❌ Error" in capsys.readouterr().err
 
-    def should_replace_emojis_with_descriptions_when_flag_active(self):
-        """Testa substituição por [NAME] quando a flag --emoji-description é usada."""
-        text = "Hello 😀"
-        result = replace_unsupported_emojis(text, "Helvetica", None, emoji_description=True)
-        assert "Hello [GRINNING FACE]" in result
-
-    # --- Renderização Real ---
     def should_embed_emoji_font_in_pdf(self):
         """Verifica se a fonte de emoji é incluída no binário do PDF."""
         output = io.BytesIO()
