@@ -56,6 +56,33 @@ class PDFConfig:
     repo_url: str | None = None  # URL of the repository for the cover page
     page_number_size: int = 8  # Font size for page numbers
 
+    # Customization fields
+    title_font: str | None = None
+    title_size: int = 28
+    title_color: str = "#1e1e2e"
+    subtitle_font: str | None = None
+    subtitle_size: int = 18
+    subtitle_color: str | None = None # Defaults to title_color
+    normal_text_size: int = 10
+    normal_text_color: str = "#4c4f69" # Default COLOR_TEXT_MAIN
+    page_number_format: str = "{n}" # e.g. "Anexo I - {n}" or just "{n}"
+    show_page_numbers: bool = True
+    cover_title: str = "TECHNICAL ANNEX"
+    cover_subtitle: str = "Source Code Documentation"
+    primary_color: str = "#1e66f5" # Professional dark blue
+    
+    # Code style
+    code_font_size: int = CODE_FONT_SIZE
+    code_bg_color: str = "#1e1e2e" # Default COLOR_CODE_BG
+    page_bg_color: str = "#ffffff" # Default COLOR_PAGE_BG
+    
+    # Labels (Internationalization)
+    summary_title: str = "Summary / File Index"
+    repo_label: str = "Repository: "
+    project_label: str = "Project: "
+    file_part_format: str = "({current}/{total})" # e.g. "(1/2)"
+    cover_subtitle: str = "Source Code Documentation"
+
     def get_code_x(self) -> float:
         """Calculates the initial X position of the code."""
         return self.margin_left + GUTTER_W

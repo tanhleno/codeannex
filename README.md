@@ -1,116 +1,85 @@
 # 📂 codeannex
 
-Generates a professional PDF annex from a project's source code — with syntax highlighting, a clickable table of contents, image rendering, non-selectable line numbers, and configurable fonts.
+Generates a professional PDF annex from a project's source code — with syntax highlighting, a hierarchical table of contents, image rendering, and intelligent font discovery.
 
-## Features
+## 🚀 Key Features
 
-- **Syntax highlighting** via Pygments (Catppuccin Mocha theme)
-- **Clickable table of contents** with page numbers (two-pass layout)
-- **Smart word wrap** — breaks at word boundaries, respects emoji codepoints
-- **Non-selectable line numbers** rendered as images
-- **Image support** — embeds PNG, JPG, GIF, WebP, BMP, ICO, and SVG files
-- **Git-aware** — uses `git ls-files` when available; falls back to manual `.gitignore` parsing
-- **Cross-platform font discovery** — finds monospace and emoji fonts on Windows, macOS, and Linux
-- **Emoji support** — configurable fonts for emojis, with fallback for better rendering.
-  - *Tip for Linux:* Install `fonts-symbola` for high-coverage monochromatic emoji support that works reliably with ReportLab.
-- **Emoji descriptions** — option to print `[EMOJI NAME]` instead of glyphs for systems without emoji fonts.
-- **Configurable fonts** — customize normal, bold, monospace, and emoji fonts.
-- **Page numbering** — customizable font size and position.
-- **Repository Link** — show a clickable repository link on the cover page.
-- **Fast binary file detection** — quickly ignores common binary extensions.
+- **Interactive Wizard** — Run without arguments to configure your PDF step-by-step. It intelligently skips irrelevant questions (like starting page if numbering is disabled).
+- **Intelligent Font Discovery** — Automatically finds and registers fonts from your system (Windows, Linux, macOS) by name (e.g., `--title-font "Play"`).
+- **Fully Customizable UI** — Change every label, color, and size via CLI. Default labels are in English for international consistency.
+- **Hierarchical Summary** — Real tree-structured Table of Contents with terminal-like connection lines.
+- **Customizable Primary Color** — Set the theme color for headers, folder icons, and accents with `--primary-color`.
+- **Smart Contrast** — Automatically switches header text between black and white based on the brightness of your primary color for maximum legibility.
+- **Flexible Page Styling** — Support for custom page background and code block colors.
+- **Git-Aware** — Perfectly interprets `.gitignore` using Git's native engine.
 
-## Requirements
-
-- Python >= 3.11
-- `reportlab`, `Pillow`, `Pygments`
-
-Optional SVG rendering (install at least one):
-- `cairosvg` (preferred)
-- `svglib`
-
-For development and testing:
-- `pytest` (install with `pip install -e ".[dev]"`)
-
-## Installation
+## 🛠 Installation
 
 ```bash
 pip install codeannex
 ```
 
-With SVG support:
+## 📖 Usage
 
+### Interactive Mode (Wizard)
+Simply run without arguments to start the step-by-step configuration:
 ```bash
-pip install "codeannex[svg]"
-```
-## Requirements
-
-- Python >= 3.11
-- `reportlab`, `Pillow`, `Pygments`, `pdfminer.six`
-
-Optional SVG rendering (install at least one):
-...
-## Usage
-
-```bash
-# Annotate current directory
-codeannex
-
-# Annotate a specific project
-codeannex /path/to/project
-
-# Custom output filename
-codeannex /path/to/project -o my_annex.pdf
-
-# Customized configuration (margins in cm)
-codeannex /path/to/project \
-  --name "My Project" \
-  --repo-url "https://github.com/user/repo" \
-  --margin 1.5 \
-  --margin-top 2.5 \
-  --page-number-size 10 \
-  --show-project
+codeannex .
 ```
 
-### Configuration Options
-
-- `--name NAME` — Custom project name (default: directory name).
-- `--repo-url URL` — Repository URL to show as a clickable link on the cover.
-- `--start-page N` — Starting page number (default: 1).
-- `--margin CM` — General margin in cm for all sides.
-- `--margin-left CM` — Left margin in cm (default: 1.5).
-- `--margin-right CM` — Right margin in cm (default: 1.5).
-- `--margin-top CM` — Top margin in cm (default: 2.0).
-- `--margin-bottom CM` — Bottom margin in cm (default: 2.0).
-- `--show-project` — Show project name in page footer (default: off).
-- `--page-number-size N` — Font size for page numbers (default: 8).
-- `--normal-font FONT` — Font for normal text (default: Helvetica).
-- `--bold-font FONT` — Font for bold text (default: Helvetica-Bold).
-- `--mono-font FONT` — Monospace font for code (default: auto-detect).
-- `--emoji-font FONT` — Font for emojis (default: auto-detect).
-- `--emoji-description` — Print `[DESCRIPTION]` instead of emoji glyphs.
-- `--check-emoji-font` — Check current emoji font style and exit.
-
-
-## Testing
-
-Run the test suite with pytest:
-
+### Automation / CI
+Use the `--no-input` flag to disable the wizard in automated environments:
 ```bash
-pytest
+codeannex . --no-input
 ```
 
-## Output
+### Professional Customization Example
+```bash
+python3 -m codeannex . \
+  --cover-title "Anexo I" \
+  --no-page-numbers \
+  --primary-color "#0f4761" \
+  --title-font "Play" --title-size 20 \
+  --normal-font "Times New Roman" --normal-size 12 \
+  --margin-top 2.5 --margin-bottom 2.5 --margin-left 3 --margin-right 3 \
+  --code-bg "#f5f5f5" --code-size 9
+```
 
-The generated PDF contains:
+## ⚙️ Configuration Options
 
-1. **Cover page** — project name with page number
-2. **Table of contents** — tree-structured, with clickable links to each file
-3. **File pages** — syntax-highlighted source, with file path headers and line numbers
+### Document & Labels
+- `--cover-title TITLE` — Title for the cover (default: "ANEXO TÉCNICO").
+- `--cover-subtitle SUB` — Subtitle for the cover.
+- `--summary-title TITLE` — Title for the summary page.
+- `--repo-label LABEL` — Prefix for repository link (default: "Repository: ").
+- `--project-label LABEL` — Prefix for project name in footer.
+- `--file-part-format FMT` — Format for file parts (default: "({current}/{total})").
+- `--no-input` — Disable the interactive wizard.
 
-Files are ordered: root files first (alphabetical), then directories recursively (alphabetical).
 
-Binary files (e.g., .pdf, .exe) are automatically ignored with warnings if not in .gitignore.
+### Colors & Themes
+- `--primary-color HEX` — Main color for headers and accents.
+- `--page-bg-color HEX` — Background color for all pages.
+- `--code-bg HEX` — Background color for code blocks.
+- `--normal-color HEX` / `--title-color HEX` — Text colors.
 
-## License
+### Fonts & Sizes
+- `--title-font` / `--subtitle-font` / `--normal-font` — System font names.
+- `--mono-font` — Font for code (e.g., "Consolas", "Ubuntu Mono").
+- `--emoji-font` — Font for emojis (e.g., "Noto Emoji").
+- `--code-size N` — Font size for code blocks.
+
+### Layout
+- `--margin CM` — General margin for all sides.
+- `--margin-top`, `--margin-bottom`, `--margin-left`, `--margin-right` — Specific margins in cm.
+- `--no-page-numbers` — Disable page numbering.
+
+## 🧪 Testing
+
+```bash
+PYTHONPATH=. pytest
+```
+
+## 📄 License
 
 MIT

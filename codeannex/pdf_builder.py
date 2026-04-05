@@ -23,6 +23,7 @@ from .highlight import get_token_color
 from .text_utils import (
     sanitize_text, get_safe_string_width,
     draw_text_with_fallback, draw_centred_text_with_fallback,
+    get_contrast_color,
 )
 
 
@@ -76,17 +77,23 @@ class ModernAnnexPDF:
         self._first_page = False
         self.y = PAGE_H - self.config.margin_top
         if not self.is_simulation:
-            self.c.setFillColor(COLOR_PAGE_BG)
+            self.c.setFillColor(colors.HexColor(self.config.page_bg_color))
             self.c.rect(0, 0, PAGE_W, PAGE_H, fill=1, stroke=0)
             self._draw_page_info()
 
     def _draw_page_info(self):
+        if not self.config.show_page_numbers:
+            return
+
         self.c.setFont(self.config.normal_font, self.config.page_number_size)
-        self.c.setFillColor(COLOR_TEXT_MAIN)
-        self.c.drawRightString(PAGE_W - self.config.margin_right, 10*mm, f"{self.page_num}")
+        self.c.setFillColor(colors.HexColor(self.config.normal_text_color))
+        
+        page_label = self.config.page_number_format.replace("{n}", str(self.page_num))
+        self.c.drawRightString(PAGE_W - self.config.margin_right, 10*mm, page_label)
+        
         if self.config.show_project_name:
-            self._dtf(self.config.margin_left, 10*mm, f"Projeto: {self.config.project_name or self.project_root.name}",
-                      self.config.normal_font, 8, COLOR_TEXT_MAIN)
+            self._dtf(self.config.margin_left, 10*mm, f"{self.config.project_label}{self.config.project_name or self.project_root.name}",
+                      self.config.normal_font, 8, colors.HexColor(self.config.normal_text_color))
 
     def _check_space(self, needed_h: float):
         if self.y - needed_h < self.config.margin_bottom:
@@ -98,12 +105,14 @@ class ModernAnnexPDF:
         self._check_space(h + 15*mm)
         if not self.is_simulation:
             label = f"{rel_path} {continuation}".rstrip()
-            self.c.setFillColor(COLOR_HEADER_BG)
+            self.c.setFillColor(colors.HexColor(self.config.primary_color))
             self.c.roundRect(self.config.margin_left, self.y - h,
                              PAGE_W - self.config.margin_left - self.config.margin_right, h, 2*mm, fill=1, stroke=0)
             self.c.rect(self.config.margin_left, self.y - h,
                         PAGE_W - self.config.margin_left - self.config.margin_right, 2*mm, fill=1, stroke=0)
-            self._dtf(self.config.margin_left + 4*mm, self.y - h + 2.5*mm, label, self.config.bold_font, 9, COLOR_HEADER_FG)
+            # Dynamic contrast: White for dark backgrounds, Black for light backgrounds
+            header_text_color = get_contrast_color(self.config.primary_color)
+            self._dtf(self.config.margin_left + 4*mm, self.y - h + 2.5*mm, label, self.config.bold_font, 9, header_text_color)
         self.y -= h
 
     def _register_bookmark(self, display_name: str, bookmark_key: str):
@@ -120,91 +129,122 @@ class ModernAnnexPDF:
         self.start_new_page()
         if not self.is_simulation:
             mid_x = PAGE_W / 2
-            self._dctf(mid_x, PAGE_H * 0.60, "ANEXO TÉCNICO",
-                       self.config.bold_font, 28, colors.HexColor("#1e1e2e"))
-            self._dctf(mid_x, PAGE_H * 0.53, "Documentação de Código-Fonte",
-                       self.config.normal_font, 18, COLOR_TEXT_MAIN)
-            self.c.setStrokeColor(COLOR_ACCENT)
+            
+            # Use configured title font and size
+            title_font = self.config.title_font or self.config.bold_font
+            self._dctf(mid_x, PAGE_H * 0.60, self.config.cover_title,
+                       title_font, self.config.title_size, colors.HexColor(self.config.title_color))
+            
+            # Use configured subtitle font and size
+            subtitle_font = self.config.subtitle_font or self.config.normal_font
+            subtitle_color = self.config.subtitle_color or self.config.title_color
+            self._dctf(mid_x, PAGE_H * 0.53, self.config.cover_subtitle,
+                       subtitle_font, self.config.subtitle_size, colors.HexColor(subtitle_color))
+            
+            self.c.setStrokeColor(colors.HexColor(self.config.primary_color))
             self.c.setLineWidth(1)
             self.c.line(mid_x - 40*mm, PAGE_H * 0.5, mid_x + 40*mm, PAGE_H * 0.5)
             
             project_name = self.config.project_name or self.project_root.name
+            text_color = colors.HexColor(self.config.normal_text_color)
             if self.config.repo_url:
-                # Desenha "Repositório: " e depois o link com o nome do projeto
-                label_prefix = "Repositório: "
+                # Desenha o rótulo e depois o link
+                label_prefix = self.config.repo_label
                 prefix_w = self._gsw(label_prefix, self.config.normal_font, 12)
                 name_w = self._gsw(project_name, self.config.normal_font, 12)
                 total_w = prefix_w + name_w
                 
                 start_x = mid_x - total_w / 2
-                self._dtf(start_x, PAGE_H * 0.45, label_prefix, self.config.normal_font, 12, COLOR_TEXT_MAIN)
+                self._dtf(start_x, PAGE_H * 0.45, label_prefix, self.config.normal_font, 12, text_color)
                 
                 # O link em si (nome do projeto)
                 link_x = start_x + prefix_w
-                self._dtf(link_x, PAGE_H * 0.45, project_name, self.config.normal_font, 12, COLOR_ACCENT)
+                self._dtf(link_x, PAGE_H * 0.45, project_name, self.config.normal_font, 12, colors.HexColor(self.config.primary_color))
                 
                 # Adicionar área clicável para o link
                 self.c.linkURL(self.config.repo_url, 
                                (link_x, PAGE_H * 0.45 - 2, link_x + name_w, PAGE_H * 0.45 + 10),
                                relative=0, thickness=0, border=None)
             else:
-                self._dctf(mid_x, PAGE_H * 0.45, f"Repositório: {project_name}",
-                           self.config.normal_font, 12, COLOR_TEXT_MAIN)
+                self._dctf(mid_x, PAGE_H * 0.45, f"{self.config.repo_label}{project_name}",
+                           self.config.normal_font, 12, text_color)
 
     # ── Sumário ──────────────────────────────────
     def draw_summary_page(self, files: list):
         self.start_new_page()
+        # Use configured title style for consistency
+        title_font = self.config.title_font or self.config.bold_font
         if not self.is_simulation:
-            self._dtf(self.config.margin_left, self.y, "Sumário / Índice de Arquivos",
-                      self.config.bold_font, 16, COLOR_TEXT_MAIN)
+            self._dtf(self.config.margin_left, self.y, self.config.summary_title,
+                      title_font, 16, colors.HexColor(self.config.title_color))
         self.y -= 12*mm
 
-        tree: dict = {}
-        seen: set  = set()
+        # Build nested tree
+        nested_tree: dict = {"_files": []}
         for fpath, ftype in files:
-            rel        = fpath.relative_to(self.project_root)
-            full_posix = rel.as_posix()
-            if full_posix in seen:
-                continue
-            seen.add(full_posix)
-            d = "." if len(rel.parts) == 1 else "/".join(rel.parts[:-1])
-            tree.setdefault(d, []).append((rel.name, _make_bookmark_key(full_posix)))
+            rel = fpath.relative_to(self.project_root)
+            curr = nested_tree
+            for part in rel.parts[:-1]:
+                curr = curr.setdefault(part, {"_files": []})
+            curr["_files"].append((rel.name, _make_bookmark_key(rel.as_posix())))
 
-        for d in tree:
-            self._check_space(15*mm)
-            if d != ".":
-                if not self.is_simulation:
-                    self._dtf(self.config.margin_left + d.count("/") * 4*mm, self.y,
-                              f"▶ {d}/", self.config.bold_font, 10, COLOR_ACCENT)
-                self.y -= 6*mm
-
-            for display_name, bookmark_key in tree[d]:
+        def draw_recursive(node: dict, depth: int, path_parts: list, is_last_list: list):
+            subdirs = sorted([k for k in node.keys() if k != "_files"], key=str.lower)
+            files_in_node = node.get("_files", [])
+            all_entries = [(d, "dir") for d in subdirs] + [(f, "file") for f in files_in_node]
+            
+            indent_step = 5*mm  # Compact step
+            text_color = colors.HexColor(self.config.normal_text_color)
+            
+            for i, (item, type) in enumerate(all_entries):
+                is_last = (i == len(all_entries) - 1)
                 self._check_space(8*mm)
-                page_str = str(self.summary_data.get(bookmark_key, 0)) \
-                           if not self.is_simulation else "000"
-
+                
                 if not self.is_simulation:
-                    base_indent = 0 if d == "." else (d.count("/") + 1) * 4*mm
-                    file_indent = self.config.margin_left + base_indent + 4*mm
-                    entry_text  = f"□ {display_name}"
-                    self._dtf(file_indent, self.y, entry_text, self.config.normal_font, 10, COLOR_TEXT_MAIN)
+                    base_x = self.config.margin_left
+                    
+                    # 1. Draw vertical lines for parent levels
+                    for d_idx, parent_is_last in enumerate(is_last_list):
+                        if not parent_is_last:
+                            line_x = base_x + d_idx * indent_step
+                            self._dtf(line_x, self.y, "│", self.mono_font, 10, colors.HexColor(self.config.primary_color))
+                    
+                    # 2. Draw current connector
+                    curr_x = base_x + depth * indent_step
+                    connector = "└─" if is_last else "├─"
+                    self._dtf(curr_x, self.y, connector, self.mono_font, 10, colors.HexColor(self.config.primary_color))
+                    
+                    # 3. Draw Icon (Primary Color)
+                    icon_x = curr_x + 4*mm
+                    icon = "▶" if type == "dir" else "•"
+                    self._dtf(icon_x, self.y, icon, self.config.normal_font, 10, colors.HexColor(self.config.primary_color))
+                    
+                    # 4. Draw Label (Increased offset for better spacing)
+                    text_x = icon_x + 5*mm
+                    if type == "dir":
+                        self._dtf(text_x, self.y, f"{item}/", self.config.bold_font, 10, colors.HexColor(self.config.primary_color))
+                    else:
+                        display_name, bookmark_key = item
+                        page_str = str(self.summary_data.get(bookmark_key, 0))
+                        self._dtf(text_x, self.y, display_name, self.config.normal_font, 10, text_color)
+                        
+                        # Dots and Page
+                        dot_w  = self._gsw(".", self.config.normal_font, 10)
+                        name_w = self._gsw(display_name, self.config.normal_font, 10)
+                        page_w = self._gsw(page_str, self.config.normal_font, 10)
+                        avail  = PAGE_W - text_x - self.config.margin_right - name_w - page_w - 5
+                        
+                        if avail > 0:
+                            self._dtf(text_x + name_w + 2.5, self.y, "." * int(avail / dot_w), self.config.normal_font, 10, text_color)
+                        self._dtf(PAGE_W - self.config.margin_right - page_w, self.y, page_str, self.config.normal_font, 10, text_color)
+                        
+                        self.c.linkRect("", bookmark_key, (text_x, self.y - 2, PAGE_W - self.config.margin_right, self.y + 10), Border=[0, 0, 0])
 
-                    dot_w  = self._gsw(".", self.config.normal_font, 10)
-                    name_w = self._gsw(entry_text, self.config.normal_font, 10)
-                    page_w = self._gsw(page_str, self.config.normal_font, 10)
-                    avail  = PAGE_W - file_indent - self.config.margin_right - name_w - page_w - 5
-
-                    if avail > 0:
-                        self._dtf(file_indent + name_w + 2.5, self.y,
-                                  "." * int(avail / dot_w), self.config.normal_font, 10, COLOR_TEXT_MAIN)
-                    self._dtf(PAGE_W - self.config.margin_right - page_w, self.y,
-                              page_str, self.config.normal_font, 10, COLOR_TEXT_MAIN)
-                    self.c.linkRect("", bookmark_key,
-                                    (file_indent, self.y - 2, PAGE_W - self.config.margin_right, self.y + 10),
-                                    Border=[0, 0, 0])
                 self.y -= 6*mm
-            self.y -= 2*mm
+                if type == "dir":
+                    draw_recursive(node[item], depth + 1, path_parts + [item], is_last_list + [is_last])
 
+        draw_recursive(nested_tree, 0, [], [])
         self.y = 0
 
     # ── Arquivo de texto ─────────────────────────
@@ -226,7 +266,7 @@ class ModernAnnexPDF:
         
         header_suffix = ""
         if total_parts:
-            header_suffix = f"(parte 1/{total_parts})"
+            header_suffix = self.config.file_part_format.replace("{current}", "1").replace("{total}", str(total_parts))
         self._draw_file_header(display_name, continuation=header_suffix)
 
         try:
@@ -251,10 +291,10 @@ class ModernAnnexPDF:
             # During simulation, uses fast approximation to avoid checking each character
             if self.is_simulation:
                 try:
-                    return pdfmetrics.stringWidth(t, self.mono_font, CODE_FONT_SIZE)
+                    return pdfmetrics.stringWidth(t, self.mono_font, self.config.code_font_size)
                 except Exception:
-                    return len(t) * (CODE_FONT_SIZE * 0.6)  # Heurística: ~60% da altura
-            return get_safe_string_width(t, self.mono_font, CODE_FONT_SIZE, self.emoji_font,
+                    return len(t) * (self.config.code_font_size * 0.6)  # Heurística: ~60% da altura
+            return get_safe_string_width(t, self.mono_font, self.config.code_font_size, self.emoji_font,
                                          emoji_description=self.config.emoji_description)
 
         def wrap_segment(part: str, color, curr_width: float,
@@ -286,6 +326,7 @@ class ModernAnnexPDF:
 
         line_idx        = 1
         page_part       = 1
+        line_h          = self.config.code_font_size * 1.4
 
         for original_line in lines:
             v_lines: list    = []
@@ -307,29 +348,34 @@ class ModernAnnexPDF:
                 v_lines.append([])
 
             for i, v_line in enumerate(v_lines):
-                if self.y - CODE_LINE_H < self.config.margin_bottom:
+                if self.y - line_h < self.config.margin_bottom:
                     page_part += 1
-                    suffix_str = f"(parte {page_part}/{total_parts})" if total_parts else f"(parte {page_part})"
+                    suffix_str = self.config.file_part_format.replace("{current}", str(page_part))
+                    if total_parts:
+                        suffix_str = suffix_str.replace("{total}", str(total_parts))
+                    else:
+                        suffix_str = suffix_str.replace("/{total}", "").replace("/{total", "") # Cleanup if total missing
+                    
                     self._draw_file_header(display_name, continuation=suffix_str)
 
                 if not self.is_simulation:
-                    base_y  = self.y - CODE_LINE_H
+                    base_y  = self.y - line_h
                     block_w = PAGE_W - self.config.margin_left - self.config.margin_right
-                    self.c.setFillColor(COLOR_CODE_BG)
-                    self.c.rect(self.config.margin_left, base_y, block_w, CODE_LINE_H, fill=1, stroke=0)
+                    self.c.setFillColor(colors.HexColor(self.config.code_bg_color))
+                    self.c.rect(self.config.margin_left, base_y, block_w, line_h, fill=1, stroke=0)
                     self.c.setFillColor(COLOR_GUTTER_BG)
-                    self.c.rect(self.config.margin_left, base_y, GUTTER_W, CODE_LINE_H, fill=1, stroke=0)
+                    self.c.rect(self.config.margin_left, base_y, GUTTER_W, line_h, fill=1, stroke=0)
 
                     if i == 0:
                         num_str    = str(line_idx)
-                        num_char_w = pdfmetrics.stringWidth("0", self.mono_font, CODE_FONT_SIZE)
-                        box_hw     = CODE_FONT_SIZE * 0.8
+                        num_char_w = pdfmetrics.stringWidth("0", self.mono_font, self.config.code_font_size)
+                        box_hw     = self.config.code_font_size * 0.8
                         start_x    = self.config.margin_left + GUTTER_W - 2*mm - len(num_str) * num_char_w
                         for char in num_str:
                             self.c.drawImage(
                                 get_digit_sprites()[char],
                                 start_x + (num_char_w - box_hw) / 2.0,
-                                (self.y - CODE_FONT_SIZE - 1) - box_hw * 0.2,
+                                (self.y - self.config.code_font_size - 1) - box_hw * 0.2,
                                 width=box_hw, height=box_hw, mask="auto",
                             )
                             start_x += num_char_w
@@ -337,12 +383,12 @@ class ModernAnnexPDF:
                     code_x = self.config.get_code_x() + 2*mm
                     for chunk, color in v_line:
                         code_x = draw_text_with_fallback(
-                            self.c, code_x, self.y - CODE_FONT_SIZE - 1,
-                            chunk, self.mono_font, CODE_FONT_SIZE, self.emoji_font, color,
+                            self.c, code_x, self.y - self.config.code_font_size - 1,
+                            chunk, self.mono_font, self.config.code_font_size, self.emoji_font, color,
                             emoji_description=self.config.emoji_description,
                         )
 
-                self.y -= CODE_LINE_H
+                self.y -= line_h
             line_idx += 1
 
         if self.is_simulation and page_part > 1:
