@@ -13,12 +13,25 @@ from reportlab.lib.units import cm
 
 
 def check_emoji_font_style():
-    emoji_font = register_emoji_font()
+    from .renderer.fonts import get_system_font_paths
+    emoji_font, emoji_path = register_emoji_font()
     if emoji_font:
         print(f"✅ Emoji font registered: {emoji_font}")
-        print("💡 Tip: Install Google Noto fonts for authentic Google emoji style")
+        if emoji_path:
+            p_lower = emoji_path.lower()
+            if "noto" in p_lower:
+                print("💡 Tip: Google Noto fonts are being used.")
+            elif "symbola" in p_lower:
+                print("💡 Tip: Symbola font is being used.")
     else:
-        print("⚠️  No emoji font found - emojis may not render correctly")
+        print("⚠️  No emoji font found - emojis may not render correctly.")
+        print(f"💡 Recommendation: Install 'Symbola' or 'Google Noto Emoji' fonts.")
+        
+    paths = get_system_font_paths()
+    print(f"\n🔍 Font search paths:")
+    for p in paths:
+        print(f"   - {p}")
+    print(f"\n💡 You can add custom search paths using: --font-path /path/to/fonts")
     return emoji_font
 
 
@@ -55,7 +68,7 @@ def main():
     repo_url, branch_name = args.repo_url or git_url, args.branch or git_branch
 
     mono_font, is_ttf, ttf_path = register_best_font()
-    emoji_font = register_emoji_font(error_on_missing=not args.emoji_description)
+    emoji_font, _ = register_emoji_font(error_on_missing=not args.emoji_description)
     init_sprites(is_ttf, ttf_path)
 
     def get_margin(spec, general, default):

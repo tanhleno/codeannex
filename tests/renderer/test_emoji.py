@@ -58,7 +58,7 @@ class TestEmojiSupport:
 
     def should_have_glyph_support_in_registered_font(self):
         """Verifica se a fonte de emoji registrada possui glifos reais."""
-        emoji_font = register_emoji_font()
+        emoji_font, _ = register_emoji_font()
         if not emoji_font:
             pytest.skip("No emoji font found on system")
             
@@ -70,7 +70,7 @@ class TestEmojiSupport:
 
     def should_calculate_width_correctly_with_emojis(self):
         """Testa cálculo de largura de texto com emojis."""
-        emoji_font = register_emoji_font()
+        emoji_font, _ = register_emoji_font()
         if not emoji_font:
             pytest.skip("No emoji font found")
         width = get_safe_string_width("Hello 😀", "Helvetica", 10, emoji_font)
@@ -81,7 +81,7 @@ class TestEmojiSupport:
     def should_embed_emoji_font_in_pdf(self):
         """Verifica se a fonte de emoji é incluída no binário do PDF."""
         output = io.BytesIO()
-        emoji_font = register_emoji_font()
+        emoji_font, _ = register_emoji_font()
         if not emoji_font:
             pytest.skip("No emoji font")
             

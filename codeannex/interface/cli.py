@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 from ..core.config import PDFConfig
-from ..io.git_utils import get_git_info
+from ..io.git_utils import get_git_info, get_git_remotes
 
 # ANSI Colors for a better CLI experience
 BOLD = "\033[1m"
@@ -82,7 +82,8 @@ def run_interactive_wizard(args):
     print(f"{YELLOW}Uppercase letters in prompts indicate the [default] action on Enter.{RESET}\n")
     
     root = Path(args.dir).resolve()
-    git_url, git_branch = get_git_info(root)
+    git_url, git_branch, _ = get_git_info(root)
+    remotes = get_git_remotes(root)
     total_steps = 6
 
     # 1. Project Identity
@@ -90,8 +91,26 @@ def run_interactive_wizard(args):
     args.name = _input_field("Project Name", args.name or root.name) or (args.name or root.name)
 
     # 2. Repository Info
-    has_git = bool(git_url or git_branch)
+    has_git = bool(remotes or git_branch)
     if has_git:
+        if len(remotes) > 1:
+            _print_header(2, total_steps, "Repository Info", "Multiple Git remotes detected")
+            print(f"   Available remotes:")
+            remote_names = list(remotes.keys())
+            for i, name in enumerate(remote_names, 1):
+                print(f"     {i}. {name} ({remotes[name]})")
+            
+            choice = _input_field("Select remote (number) or press Enter for origin", "1")
+            if choice.isdigit() and 1 <= int(choice) <= len(remote_names):
+                selected_remote = remote_names[int(choice)-1]
+                git_url = remotes[selected_remote]
+            elif "origin" in remotes:
+                git_url = remotes["origin"]
+            else:
+                git_url = remotes[remote_names[0]]
+        elif len(remotes) == 1:
+            git_url = list(remotes.values())[0]
+
         _print_header(2, total_steps, "Repository Info", f"Detected: {git_branch or 'N/A'} @ {git_url or 'N/A'}")
         if input(f"   Use detected Git info? ({GREEN}Y{RESET}/n): ").strip().lower() != 'n':
             args.branch = git_branch

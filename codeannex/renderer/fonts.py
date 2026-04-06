@@ -102,18 +102,24 @@ def register_best_font():
     if name == "Courier": print("ℹ️  Monospace font fallback: Using standard 'Courier'.")
     return name, name != "Courier", path
 
+REGISTERED_EMOJI_FONT_PATH: str | None = None
+
 def register_emoji_font(error_on_missing=False):
+    global REGISTERED_EMOJI_FONT_PATH
     name, path = _register_font("CustomEmoji", EMOJI_SEARCH_PATHS, None)
     if name is None:
         dynamic_path = find_font_file("NotoEmoji") or find_font_file("Symbola")
-        if dynamic_path: name, _ = _register_font("CustomEmoji", [dynamic_path], None)
+        if dynamic_path: 
+            name, path = _register_font("CustomEmoji", [dynamic_path], None)
+    
+    REGISTERED_EMOJI_FONT_PATH = path
     if name is None:
         if error_on_missing:
             import sys
             print("❌ Error: No emoji font found.", file=sys.stderr)
             sys.exit(1)
         else: print("ℹ️  Emoji fallback: No emoji font found.")
-    return name
+    return name, path
 
 def get_emoji_font_style(font_path: str | None) -> str | None:
     if not font_path: return None
@@ -135,8 +141,13 @@ def is_google_like_emoji_font(font_path: str | None) -> bool:
 
 def get_current_emoji_font_info() -> dict:
     if "CustomEmoji" in pdfmetrics._fonts:
-        return {"name": "CustomEmoji", "is_registered": True, "is_google_like": False, "style": "Unknown"}
-    return {"name": None, "is_registered": False, "is_google_like": False, "style": None}
+        return {
+            "name": "CustomEmoji", 
+            "is_registered": True, 
+            "path": REGISTERED_EMOJI_FONT_PATH,
+            "style": get_emoji_font_style(REGISTERED_EMOJI_FONT_PATH)
+        }
+    return {"name": None, "is_registered": False, "path": None, "style": None}
 
 def is_char_supported(char: str, font_name: str) -> bool:
     try:

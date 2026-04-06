@@ -2,9 +2,20 @@ import pytest
 import subprocess
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from codeannex.io.git_utils import get_git_info
+from codeannex.io.git_utils import get_git_info, get_git_remotes
 
 class TestGitIntegration:
+    def should_get_git_remotes_success(self):
+        """Testa a obtenção de múltiplos remotos."""
+        with patch("subprocess.run") as mock_run:
+            stdout = "origin\thttps://github.com/user/repo.git (fetch)\norigin\thttps://github.com/user/repo.git (push)\nupstream\thttps://github.com/other/repo.git (fetch)\n"
+            mock_run.return_value = MagicMock(returncode=0, stdout=stdout)
+            
+            remotes = get_git_remotes(Path("."))
+            assert len(remotes) == 2
+            assert remotes["origin"] == "https://github.com/user/repo.git"
+            assert remotes["upstream"] == "https://github.com/other/repo.git"
+
     def should_get_git_info_success(self):
         """Simula sucesso na obtenção de URL, Branch e SHA na raiz do repo."""
         with patch("subprocess.run") as mock_run:

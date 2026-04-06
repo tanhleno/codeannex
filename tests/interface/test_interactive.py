@@ -48,9 +48,10 @@ class TestInteractive:
         ]
         
         # Mockando get_git_info para retornar valores e ativar o fluxo de 'has_git'
-        with patch('codeannex.interface.cli.get_git_info', return_value=("detect.url", "main")):
-            with patch('builtins.input', side_effect=inputs):
-                run_interactive_wizard(args)
+        with patch('codeannex.interface.cli.get_git_info', return_value=("detect.url", "main", "abc12345")):
+            with patch('codeannex.interface.cli.get_git_remotes', return_value={"origin": "detect.url"}):
+                with patch('builtins.input', side_effect=inputs):
+                    run_interactive_wizard(args)
         
         assert args.name == "New Name"
         assert args.branch == "custom-branch"
@@ -83,11 +84,42 @@ class TestInteractive:
         # 6. Filters (Enter -> No)
         inputs = ["", "", "", "", "", ""]
         
-        with patch('codeannex.interface.cli.get_git_info', return_value=("detect.url", "main")):
-            with patch('builtins.input', side_effect=inputs):
-                run_interactive_wizard(args)
+        with patch('codeannex.interface.cli.get_git_info', return_value=("detect.url", "main", "abc12345")):
+            with patch('codeannex.interface.cli.get_git_remotes', return_value={"origin": "detect.url"}):
+                with patch('builtins.input', side_effect=inputs):
+                    run_interactive_wizard(args)
         
         assert args.name == "Old"
         assert args.branch == "main"
         assert args.repo_url == "detect.url"
         assert args.cover_title == "Old Title"
+
+    def should_select_between_multiple_remotes(self):
+        """Testa a seleção entre múltiplos remotos no assistente."""
+        class MockArgs:
+            def __init__(self):
+                self.dir = "."
+                self.name = "Test"
+                self.branch = None
+                self.repo_url = None
+                self.no_page_numbers = False
+
+        args = MockArgs()
+        
+        # 1. Name (Enter)
+        # 2. Select remote "2" (upstream), then Use detected Git? (Enter -> Yes)
+        # 3-6. Skip other sections (Enter x4)
+        inputs = ["", "2", "", "", "", "", ""]
+        
+        remotes = {
+            "origin": "https://github.com/user/origin.git",
+            "upstream": "https://github.com/user/upstream.git"
+        }
+        
+        with patch('codeannex.interface.cli.get_git_info', return_value=("detect.url", "main", "abc12345")):
+            with patch('codeannex.interface.cli.get_git_remotes', return_value=remotes):
+                with patch('builtins.input', side_effect=inputs):
+                    run_interactive_wizard(args)
+        
+        assert args.repo_url == "https://github.com/user/upstream.git"
+        assert args.branch == "main"

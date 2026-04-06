@@ -38,6 +38,22 @@ def get_git_info(root: Path, use_git: bool = True) -> tuple[str | None, str | No
     except (subprocess.CalledProcessError, FileNotFoundError): pass
     return repo_url, branch_name, commit_sha
 
+def get_git_remotes(root: Path) -> dict[str, str]:
+    """Returns a dictionary of remote names and URLs."""
+    try:
+        res = subprocess.run(["git", "remote", "-v"], cwd=root, capture_output=True, text=True)
+        remotes = {}
+        if res.returncode == 0:
+            for line in res.stdout.splitlines():
+                parts = line.split()
+                if len(parts) >= 2:
+                    name, url = parts[0], parts[1]
+                    if "(fetch)" in line or len(parts) == 2:
+                        remotes[name] = url
+        return remotes
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return {}
+
 def get_git_files(root: Path) -> list[Path]:
     """Returns a list of files tracked or untracked by Git, respecting .gitignore."""
     tracked = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, check=True).stdout.split(b"\0")
