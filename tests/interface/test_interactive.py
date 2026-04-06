@@ -27,12 +27,13 @@ class TestInteractive:
                 self.start_page = 1
                 self.include = None
                 self.exclude = None
+                self.emoji_description = False
 
         args = MockArgs()
         
         # Inputs para 6 seções:
         # 1. Project Name
-        # 2. Use detected Git? (Y/n) -> Digita 'n', depois Branch e URL
+        # 2. Use detected Git? (Y/n) -> Digita 'n', depois Branch e URL (Pula seleção pois só tem 1 remoto)
         # 3. Customize Style? (y/N) -> 'y', New Cover...
         # 4. Customize Typography? (y/N) -> 'n'
         # 5. Customize Layout? (y/N) -> 'y', Margins...
@@ -73,11 +74,12 @@ class TestInteractive:
                 self.repo_url = "old.url"
                 self.cover_title = "Old Title"
                 self.no_page_numbers = False
+                self.emoji_description = False
 
         args = MockArgs()
         
         # 1. Name (Enter)
-        # 2. Use detected Git? (Enter -> Yes)
+        # 2. Use detected Git? (Enter -> Yes) (Pula seleção)
         # 3. Style (Enter -> No)
         # 4. Typography (Enter -> No)
         # 5. Layout (Enter -> No)
@@ -103,6 +105,7 @@ class TestInteractive:
                 self.branch = None
                 self.repo_url = None
                 self.no_page_numbers = False
+                self.emoji_description = False
 
         args = MockArgs()
         
@@ -123,3 +126,61 @@ class TestInteractive:
         
         assert args.repo_url == "https://github.com/user/upstream.git"
         assert args.branch == "main"
+
+    def should_enable_emoji_description_if_no_font_found(self):
+        """Verifica se o wizard oferece habilitar descrições se não houver fonte de emoji."""
+        class MockArgs:
+            def __init__(self):
+                self.dir = "."
+                self.name = "Test"
+                self.emoji_description = False
+                self.title_font = None
+                self.normal_font = None
+                self.mono_font = None
+                self.code_size = 10
+                self.margin_top = 2.0
+                self.margin_bottom = 2.0
+
+        args = MockArgs()
+        
+        # 1. Name (Enter)
+        # 2. Use detected Git? (Enter) (Pula seleção pois só tem 1 remoto)
+        # 3. Style (Enter -> No)
+        # 4. Typography (y) -> Title, Normal, Mono, Size, Paths, EmojiDesc (y)
+        # 5-6. Skip (Enter x2)
+        inputs = [
+            "",               # 1. Name
+            "",               # 2. Git Info
+            "n",              # 3. Style
+            "y",              # 4. Typography (Custom)
+            "", "", "", "", "", # Title, Normal, Mono, Size, Paths
+            "y",              # Emoji Descriptions? -> YES
+            "",               # 5. Layout
+            ""                # 6. Filters
+        ]
+        
+        with patch('codeannex.interface.cli.get_git_info', return_value=("url", "main", "sha")):
+            with patch('codeannex.interface.cli.get_git_remotes', return_value={"origin": "url"}):
+                # Forçamos falha na detecção da fonte de emoji
+                with patch('codeannex.interface.cli.register_emoji_font', return_value=(None, None)):
+                    with patch('builtins.input', side_effect=inputs):
+                        run_interactive_wizard(args)
+        
+        assert args.emoji_description is True
+
+    def should_exit_gracefully_on_keyboard_interrupt(self):
+        """Testa se o wizard encerra graciosamente com Ctrl+C."""
+        class MockArgs:
+            def __init__(self):
+                self.dir = "."
+                self.name = None
+
+        args = MockArgs()
+        
+        # Simula KeyboardInterrupt no primeiro input()
+        with patch('codeannex.interface.cli.get_git_info', return_value=(None, None, None)):
+            with patch('codeannex.interface.cli.get_git_remotes', return_value={}):
+                with patch('builtins.input', side_effect=KeyboardInterrupt):
+                    with patch('sys.exit') as mock_exit:
+                        run_interactive_wizard(args)
+                        mock_exit.assert_called_once_with(0)

@@ -5,6 +5,8 @@ Generates a professional PDF annex from a project's source code — featuring sy
 ## 🚀 Key Features
 
 - **Interactive Wizard 2.0** — Step-by-step configuration with smart sections (Project, Style, Typography, Layout, Filters) and explicit default prompts.
+- **Smart Emoji Support** — Automatic discovery of standard emoji fonts (**Segoe UI Emoji** on Windows, **DejaVu Sans** on Linux).
+- **Graceful Emoji Fallback** — If no emoji font is found, it uses official Unicode names (e.g., `[ROCKET]`) for perfect readability.
 - **Git Version Tracking** — Automatically detects **Repository URL**, **Branch**, and **Commit SHA**. Smart root detection avoids Git metadata on subdirectories.
 - **Smart SVG Rendering** — Files are rendered as both a high-quality image and XML code. Entries are intelligently deduplicated in the summary.
 - **Improved Document Structure** — Subdirectories and their contents are listed before root files for better organization.
@@ -27,7 +29,7 @@ For full SVG support (required for crisp line numbers and SVG image rendering):
 pipx install "codeannex[svg]"
 ```
 
-*Alternatively, you can use standard pip:* `pip install codeannex`
+*Note: For best emoji rendering on Linux, you may want to install `fonts-noto-color-emoji` or `ttf-dejavu`.*
 
 ## 📖 Usage
 
@@ -71,6 +73,8 @@ Default output filename is `{project_name}_code_annex.pdf`.
 ### Fonts
 - `--font-path PATH` — Additional directory to search for `.ttf`/`.otf` files.
 - `--title-font` / `--normal-font` / `--mono-font` — System font names.
+- `--emoji-font NAME` — Custom font for emojis.
+- `--emoji-description` — Force textual descriptions (e.g., `[GRINNING FACE]`) instead of glyphs.
 
 ## 🧪 Testing
 

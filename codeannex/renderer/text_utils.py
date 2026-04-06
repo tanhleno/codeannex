@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from reportlab.lib import colors
 from reportlab.pdfbase import pdfmetrics
 
@@ -7,16 +8,29 @@ def sanitize_text(text: str) -> str:
     if not text: return ""
     return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
 
+def _get_emoji_label(char: str) -> str:
+    """Returns a textual label for an emoji character."""
+    try:
+        name = unicodedata.name(char)
+        return f"[{name}]"
+    except (ValueError, KeyError):
+        return f"[Emoji-{ord(char):X}]"
+
 def get_safe_string_width(text, font_name, font_size, emoji_font=None, emoji_description=False):
     from .fonts import is_char_supported
     total_w = 0.0
     for char in text:
         if is_char_supported(char, font_name):
             total_w += pdfmetrics.stringWidth(char, font_name, font_size)
+        elif emoji_description:
+            label = _get_emoji_label(char)
+            total_w += pdfmetrics.stringWidth(label, font_name, font_size)
         elif emoji_font:
-            if emoji_description: total_w += pdfmetrics.stringWidth(f"[{char}]", font_name, font_size)
-            else: total_w += pdfmetrics.stringWidth(char, emoji_font, font_size)
-        else: total_w += pdfmetrics.stringWidth("?", font_name, font_size)
+            total_w += pdfmetrics.stringWidth(char, emoji_font, font_size)
+        else:
+            # Fallback to description if no font is available, even if emoji_description=False
+            label = _get_emoji_label(char)
+            total_w += pdfmetrics.stringWidth(label, font_name, font_size)
     return total_w
 
 def draw_text_with_fallback(canvas, x, y, text, font_name, font_size, emoji_font=None, color=None, emoji_description=False):
@@ -28,20 +42,21 @@ def draw_text_with_fallback(canvas, x, y, text, font_name, font_size, emoji_font
             canvas.setFont(font_name, font_size)
             canvas.drawString(curr_x, y, char)
             curr_x += pdfmetrics.stringWidth(char, font_name, font_size)
-        elif emoji_font:
-            if emoji_description:
-                canvas.setFont(font_name, font_size)
-                label = f"[{char}]"
-                canvas.drawString(curr_x, y, label)
-                curr_x += pdfmetrics.stringWidth(label, font_name, font_size)
-            else:
-                canvas.setFont(emoji_font, font_size)
-                canvas.drawString(curr_x, y, char)
-                curr_x += pdfmetrics.stringWidth(char, emoji_font, font_size)
-        else:
+        elif emoji_description:
             canvas.setFont(font_name, font_size)
-            canvas.drawString(curr_x, y, "?")
-            curr_x += pdfmetrics.stringWidth("?", font_name, font_size)
+            label = _get_emoji_label(char)
+            canvas.drawString(curr_x, y, label)
+            curr_x += pdfmetrics.stringWidth(label, font_name, font_size)
+        elif emoji_font:
+            canvas.setFont(emoji_font, font_size)
+            canvas.drawString(curr_x, y, char)
+            curr_x += pdfmetrics.stringWidth(char, emoji_font, font_size)
+        else:
+            # Fallback to description if no font is available
+            canvas.setFont(font_name, font_size)
+            label = _get_emoji_label(char)
+            canvas.drawString(curr_x, y, label)
+            curr_x += pdfmetrics.stringWidth(label, font_name, font_size)
     return curr_x
 
 def draw_centred_text_with_fallback(canvas, x, y, text, font_name, font_size, emoji_font=None, color=None, emoji_description=False):

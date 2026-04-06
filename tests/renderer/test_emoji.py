@@ -91,4 +91,4 @@ class TestEmojiSupport:
         pdf.c.save()
         
         content = output.getvalue()
-        assert b"CustomEmoji" in content or b"Symbola" in content or b"NotoEmoji" in content
+        assert any(name in content for name in [b"CustomEmoji", b"Symbola", b"NotoEmoji", b"DejaVu", b"Segoe"])

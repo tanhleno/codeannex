@@ -36,6 +36,13 @@ def check_emoji_font_style():
 
 
 def main():
+    try:
+        _main_impl()
+    except KeyboardInterrupt:
+        print(f"\n\n\033[33m⚠️  Operation aborted by user (Ctrl+C).\033[0m")
+        sys.exit(0)
+
+def _main_impl():
     args, unknown = parse_args()
     is_interactive = len(sys.argv) <= 2 and not args.no_input
     if is_interactive: run_interactive_wizard(args)

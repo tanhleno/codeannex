@@ -86,7 +86,13 @@ TTF_SEARCH_PATHS = [
     "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf", "/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf",
     "C:\\Windows\\Fonts\\consola.ttf", "C:\\Windows\\Fonts\\cour.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", "C:\\Windows\\Fonts\\arial.ttf"
 ]
-EMOJI_SEARCH_PATHS = ["/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf", "/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf"]
+EMOJI_SEARCH_PATHS = [
+    "C:\\Windows\\Fonts\\seguiemj.ttf",          # Windows Standard Emoji
+    "C:\\Windows\\Fonts\\seguisym.ttf",          # Windows Standard Symbol
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", # Linux Standard Fallback
+    "/usr/share/fonts/truetype/noto/NotoEmoji-Regular.ttf", 
+    "/usr/share/fonts/truetype/ancient-scripts/Symbola_hint.ttf"
+]
 
 def _register_font(name: str, paths: list, fallback):
     for p in paths:

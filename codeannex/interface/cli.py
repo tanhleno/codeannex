@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 from ..core.config import PDFConfig
 from ..io.git_utils import get_git_info, get_git_remotes
+from ..renderer.fonts import register_emoji_font
 
 # ANSI Colors for a better CLI experience
 BOLD = "\033[1m"
@@ -96,19 +97,27 @@ def run_interactive_wizard(args):
         if has_git:
             if len(remotes) > 1:
                 _print_header(2, total_steps, "Repository Info", "Multiple Git remotes detected")
-                print(f"   Available remotes:")
                 remote_names = list(remotes.keys())
+
+                # Identify default index
+                default_idx = 1
+                if "origin" in remote_names:
+                    default_idx = remote_names.index("origin") + 1
+
                 for i, name in enumerate(remote_names, 1):
-                    print(f"     {i}. {name} ({remotes[name]})")
-                
-                choice = _input_field("Select remote (number) or press Enter for origin", "1")
-                if choice.isdigit() and 1 <= int(choice) <= len(remote_names):
+                    marker = f"{GREEN}*{RESET}" if i == default_idx else " "
+                    print(f"     {i}. {marker} {name} ({remotes[name]})")
+                print(f"     0.   [ Manual / None ]")
+
+                choice = _input_field(f"Select remote (1-{len(remote_names)}) or '0' for manual", str(default_idx))
+
+                if choice == "0":
+                    git_url = None
+                elif choice.isdigit() and 1 <= int(choice) <= len(remote_names):
                     selected_remote = remote_names[int(choice)-1]
                     git_url = remotes[selected_remote]
-                elif "origin" in remotes:
-                    git_url = remotes["origin"]
                 else:
-                    git_url = remotes[remote_names[0]]
+                    git_url = remotes[remote_names[default_idx-1]]
             elif len(remotes) == 1:
                 git_url = list(remotes.values())[0]
 
@@ -137,11 +146,23 @@ def run_interactive_wizard(args):
             args.normal_font = _input_field("Normal Font", args.normal_font or 'Helvetica') or args.normal_font
             args.mono_font = _input_field("Monospace Font", args.mono_font or 'Auto') or args.mono_font
             args.code_size = int(_input_field("Code Font Size", args.code_size) or args.code_size)
-            
+
             paths = _input_field("Additional Font Paths (comma-separated)", "None")
             if paths:
                 args.font_path = [p.strip() for p in paths.split(",") if p.strip()]
 
+            # Emoji Font Check & Support
+            emoji_f, emoji_p = register_emoji_font()
+            if not emoji_f:
+                print(f"\n   {YELLOW}⚠️  No emoji font detected!{RESET}")
+                print(f"      To render emojis, install {BOLD}Symbola{RESET} or {BOLD}Google Noto Emoji{RESET}.")
+                print(f"      Or provide a custom path above.")
+
+                choice = input(f"   Use text descriptions for emojis (e.g. [smile])? (y/{GREEN}N{RESET}): ").strip().lower()
+                if choice == 'y':
+                    args.emoji_description = True
+            else:
+                print(f"   {GREEN}✅ Emoji font detected:{RESET} {emoji_f} ({emoji_p or 'System'})")
         # 5. Page Layout
         if _ask_section(5, total_steps, "Page Layout & Margins", "Margins, Paper Size, Page Numbering"):
             args.margin_top = float(_input_field("Top Margin (cm)", args.margin_top or 2.0) or (args.margin_top or 2.0))
