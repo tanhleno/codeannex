@@ -78,84 +78,90 @@ def _input_field(label, default):
     return input(prompt).strip()
 
 def run_interactive_wizard(args):
-    print(f"\n{BOLD}{BLUE}✨ Welcome to codeannex Interactive Wizard! ✨{RESET}")
-    print(f"{YELLOW}Uppercase letters in prompts indicate the [default] action on Enter.{RESET}\n")
-    
-    root = Path(args.dir).resolve()
-    git_url, git_branch, _ = get_git_info(root)
-    remotes = get_git_remotes(root)
-    total_steps = 6
-
-    # 1. Project Identity
-    _print_header(1, total_steps, "Project Identity", "Basic identification of your document")
-    args.name = _input_field("Project Name", args.name or root.name) or (args.name or root.name)
-
-    # 2. Repository Info
-    has_git = bool(remotes or git_branch)
-    if has_git:
-        if len(remotes) > 1:
-            _print_header(2, total_steps, "Repository Info", "Multiple Git remotes detected")
-            print(f"   Available remotes:")
-            remote_names = list(remotes.keys())
-            for i, name in enumerate(remote_names, 1):
-                print(f"     {i}. {name} ({remotes[name]})")
-            
-            choice = _input_field("Select remote (number) or press Enter for origin", "1")
-            if choice.isdigit() and 1 <= int(choice) <= len(remote_names):
-                selected_remote = remote_names[int(choice)-1]
-                git_url = remotes[selected_remote]
-            elif "origin" in remotes:
-                git_url = remotes["origin"]
-            else:
-                git_url = remotes[remote_names[0]]
-        elif len(remotes) == 1:
-            git_url = list(remotes.values())[0]
-
-        _print_header(2, total_steps, "Repository Info", f"Detected: {git_branch or 'N/A'} @ {git_url or 'N/A'}")
-        if input(f"   Use detected Git info? ({GREEN}Y{RESET}/n): ").strip().lower() != 'n':
-            args.branch = git_branch
-            args.repo_url = git_url
-        else:
-            args.branch = _input_field("Branch Name", git_branch or 'None') or git_branch
-            args.repo_url = _input_field("Repository URL", git_url or 'None') or git_url
-    else:
-        if _ask_section(2, total_steps, "Repository Info", "Branch and Repository URL (No Git detected)"):
-            args.branch = _input_field("Branch Name", "None") or None
-            args.repo_url = _input_field("Repository URL", "None") or None
-
-    # 3. Visual Style
-    if _ask_section(3, total_steps, "Visual Style", "Titles, Subtitles, Accent Colors"):
-        args.cover_title = _input_field("Cover Title", args.cover_title) or args.cover_title
-        args.cover_subtitle = _input_field("Cover Subtitle", args.cover_subtitle) or args.cover_subtitle
-        args.primary_color = _input_field("Primary Accent Color (HEX)", args.primary_color) or args.primary_color
-        args.title_color = _input_field("Title Color (HEX)", args.title_color) or args.title_color
-
-    # 4. Typography
-    if _ask_section(4, total_steps, "Typography", "Fonts and Text Sizes"):
-        args.title_font = _input_field("Title Font", args.title_font or 'Helvetica') or args.title_font
-        args.normal_font = _input_field("Normal Font", args.normal_font or 'Helvetica') or args.normal_font
-        args.mono_font = _input_field("Monospace Font", args.mono_font or 'Auto') or args.mono_font
-        args.code_size = int(_input_field("Code Font Size", args.code_size) or args.code_size)
+    try:
+        print(f"\n{BOLD}{BLUE}✨ Welcome to codeannex Interactive Wizard! ✨{RESET}")
+        print(f"{YELLOW}Uppercase letters in prompts indicate the [default] action on Enter.{RESET}\n")
         
-        paths = _input_field("Additional Font Paths (comma-separated)", "None")
-        if paths:
-            args.font_path = [p.strip() for p in paths.split(",") if p.strip()]
+        root = Path(args.dir).resolve()
+        git_url, git_branch, _ = get_git_info(root)
+        remotes = get_git_remotes(root)
+        total_steps = 6
 
-    # 5. Page Layout
-    if _ask_section(5, total_steps, "Page Layout & Margins", "Margins, Paper Size, Page Numbering"):
-        args.margin_top = float(_input_field("Top Margin (cm)", args.margin_top or 2.0) or (args.margin_top or 2.0))
-        args.margin_bottom = float(_input_field("Bottom Margin (cm)", args.margin_bottom or 2.0) or (args.margin_bottom or 2.0))
-        args.page_width = float(_input_field("Page Width (mm)", 210.0) or 210.0)
-        args.page_height = float(_input_field("Page Height (mm)", 297.0) or 297.0)
-        args.no_page_numbers = input(f"   Disable page numbers? (y/{GREEN}N{RESET}): ").strip().lower() == 'y'
-        if not args.no_page_numbers:
-            args.start_page = int(_input_field("Start Page Number", args.start_page) or args.start_page)
+        # 1. Project Identity
+        _print_header(1, total_steps, "Project Identity", "Basic identification of your document")
+        args.name = _input_field("Project Name", args.name or root.name) or (args.name or root.name)
 
-    # 6. Filters
-    if _ask_section(6, total_steps, "File Filters", "Include/Exclude patterns (glob)"):
-        inc = _input_field("Include Patterns (comma-separated)", "None")
-        if inc: args.include = [p.strip() for p in inc.split(",") if p.strip()]
-        exc = _input_field("Exclude Patterns (comma-separated)", "None")
-        if exc: args.exclude = [p.strip() for p in exc.split(",") if p.strip()]
+        # 2. Repository Info
+        has_git = bool(remotes or git_branch)
+        if has_git:
+            if len(remotes) > 1:
+                _print_header(2, total_steps, "Repository Info", "Multiple Git remotes detected")
+                print(f"   Available remotes:")
+                remote_names = list(remotes.keys())
+                for i, name in enumerate(remote_names, 1):
+                    print(f"     {i}. {name} ({remotes[name]})")
+                
+                choice = _input_field("Select remote (number) or press Enter for origin", "1")
+                if choice.isdigit() and 1 <= int(choice) <= len(remote_names):
+                    selected_remote = remote_names[int(choice)-1]
+                    git_url = remotes[selected_remote]
+                elif "origin" in remotes:
+                    git_url = remotes["origin"]
+                else:
+                    git_url = remotes[remote_names[0]]
+            elif len(remotes) == 1:
+                git_url = list(remotes.values())[0]
 
-    print(f"\n{BOLD}{GREEN}🚀 Configuration complete! Generating PDF...{RESET}\n")
+            _print_header(2, total_steps, "Repository Info", f"Detected: {git_branch or 'N/A'} @ {git_url or 'N/A'}")
+            if input(f"   Use detected Git info? ({GREEN}Y{RESET}/n): ").strip().lower() != 'n':
+                args.branch = git_branch
+                args.repo_url = git_url
+            else:
+                args.branch = _input_field("Branch Name", git_branch or 'None') or git_branch
+                args.repo_url = _input_field("Repository URL", git_url or 'None') or git_url
+        else:
+            if _ask_section(2, total_steps, "Repository Info", "Branch and Repository URL (No Git detected)"):
+                args.branch = _input_field("Branch Name", "None") or None
+                args.repo_url = _input_field("Repository URL", "None") or None
+
+        # 3. Visual Style
+        if _ask_section(3, total_steps, "Visual Style", "Titles, Subtitles, Accent Colors"):
+            args.cover_title = _input_field("Cover Title", args.cover_title) or args.cover_title
+            args.cover_subtitle = _input_field("Cover Subtitle", args.cover_subtitle) or args.cover_subtitle
+            args.primary_color = _input_field("Primary Accent Color (HEX)", args.primary_color) or args.primary_color
+            args.title_color = _input_field("Title Color (HEX)", args.title_color) or args.title_color
+
+        # 4. Typography
+        if _ask_section(4, total_steps, "Typography", "Fonts and Text Sizes"):
+            args.title_font = _input_field("Title Font", args.title_font or 'Helvetica') or args.title_font
+            args.normal_font = _input_field("Normal Font", args.normal_font or 'Helvetica') or args.normal_font
+            args.mono_font = _input_field("Monospace Font", args.mono_font or 'Auto') or args.mono_font
+            args.code_size = int(_input_field("Code Font Size", args.code_size) or args.code_size)
+            
+            paths = _input_field("Additional Font Paths (comma-separated)", "None")
+            if paths:
+                args.font_path = [p.strip() for p in paths.split(",") if p.strip()]
+
+        # 5. Page Layout
+        if _ask_section(5, total_steps, "Page Layout & Margins", "Margins, Paper Size, Page Numbering"):
+            args.margin_top = float(_input_field("Top Margin (cm)", args.margin_top or 2.0) or (args.margin_top or 2.0))
+            args.margin_bottom = float(_input_field("Bottom Margin (cm)", args.margin_bottom or 2.0) or (args.margin_bottom or 2.0))
+            args.page_width = float(_input_field("Page Width (mm)", 210.0) or 210.0)
+            args.page_height = float(_input_field("Page Height (mm)", 297.0) or 297.0)
+            args.no_page_numbers = input(f"   Disable page numbers? (y/{GREEN}N{RESET}): ").strip().lower() == 'y'
+            if not args.no_page_numbers:
+                args.start_page = int(_input_field("Start Page Number", args.start_page) or args.start_page)
+
+        # 6. Filters
+        if _ask_section(6, total_steps, "File Filters", "Include/Exclude patterns (glob)"):
+            inc = _input_field("Include Patterns (comma-separated)", "None")
+            if inc: args.include = [p.strip() for p in inc.split(",") if p.strip()]
+            exc = _input_field("Exclude Patterns (comma-separated)", "None")
+            if exc: args.exclude = [p.strip() for p in exc.split(",") if p.strip()]
+
+        print(f"\n{BOLD}{GREEN}🚀 Configuration complete! Generating PDF...{RESET}\n")
+
+    except KeyboardInterrupt:
+        import sys
+        print(f"\n\n{YELLOW}⚠️  Wizard aborted by user (Ctrl+C).{RESET}")
+        sys.exit(0)
